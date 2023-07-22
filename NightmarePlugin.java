@@ -1,11 +1,11 @@
 package net.runelite.client.plugins.nightmare;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Provides;
 import java.awt.Polygon;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -17,6 +17,7 @@ import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SpriteManager;
@@ -26,6 +27,7 @@ import net.runelite.client.plugins.projectilecd.ProjectileInfo;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.ui.overlay.infobox.Timer;
+import net.runelite.client.plugins.prayer.PrayerReorder;
 
 @PluginDescriptor(
 	name = "<html><font color=#b82584>[J] Nightmare",
@@ -54,6 +56,11 @@ public class NightmarePlugin extends Plugin
 	private NightmareOverlay overlay;
 	@Inject
 	private SanfewInfoBox sanfewInfoBox;
+	@Inject
+	private PrayerReorder prayerReorder;
+	@Inject
+	private EventBus eventBus;
+
 
 	// Nightmare's attack animations
 	private static final int NIGHTMARE_HUSK_SPAWN = 8565;
@@ -135,6 +142,8 @@ public class NightmarePlugin extends Plugin
 	{
 		overlayManager.add(overlay);
 		overlayManager.add(sanfewInfoBox);
+		prayerReorder.startUp();
+		eventBus.register(prayerReorder);
 		reset();
 	}
 
@@ -143,6 +152,9 @@ public class NightmarePlugin extends Plugin
 	{
 		overlayManager.remove(overlay);
 		overlayManager.remove(sanfewInfoBox);
+
+		prayerReorder.shutDown();
+		eventBus.unregister(prayerReorder);
 		reset();
 	}
 
@@ -412,14 +424,21 @@ public class NightmarePlugin extends Plugin
 			parasite = false;
 		}
 
+		// Set PrayerReorder class to public, functions setPrayerOrder and rebuildPrayers to public
 		if (event.getMessage().toLowerCase().contains("the nightmare has cursed you, shuffling your prayers!"))
 		{
 			cursed = true;
+			int[] cursedPrayers = {0,1,2,18,19,3,8,17,15,9,20,28,16,7,10,11,4,5,6,22,23,14,12,13,21,25,26,24,27};
+			prayerReorder.setPrayerOrder(0, cursedPrayers);
+			prayerReorder.rebuildPrayers(false);
 		}
 
 		if (event.getMessage().toLowerCase().contains("you feel the effects of the nightmare's curse wear off."))
 		{
 			cursed = false;
+			int[] normalPrayers = {0,1,2,18,19,3,8,17,15,9,20,28,16,7,10,11,4,5,6,22,23,12,13,14,21,25,26,24,27};
+			prayerReorder.setPrayerOrder(0, normalPrayers);
+			prayerReorder.rebuildPrayers(false);
 		}
 
 		if (config.yawnInfoBox() && event.getMessage().toLowerCase().contains("the nightmare's spores have infected you, making you feel drowsy!"))
@@ -482,6 +501,8 @@ public class NightmarePlugin extends Plugin
 			}
 		}
 	}
+
+
 
 	private boolean isPhosanis(int id)
 	{
