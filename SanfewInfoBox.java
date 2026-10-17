@@ -1,55 +1,51 @@
 package net.runelite.client.plugins.nightmare;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import net.runelite.api.Client;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
-import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.components.ImageComponent;
 import net.runelite.client.ui.overlay.components.PanelComponent;
 
+/** Red sanfew icon shown while you're carrying a parasite, as a reminder to drink one. */
 @Singleton
-public class SanfewInfoBox extends Overlay
+class SanfewInfoBox extends Overlay
 {
-	private final Client client;
+	private static final Color BACKGROUND = new Color(150, 0, 0, 150);
+
 	private final NightmarePlugin plugin;
 	private final NightmareConfig config;
 	private final ItemManager itemManager;
-	private final PanelComponent imagePanelComponent = new PanelComponent();
+	private final PanelComponent panel = new PanelComponent();
 
 	@Inject
-	private SanfewInfoBox(final Client client, final NightmarePlugin plugin, final ItemManager itemManager, final NightmareConfig config)
+	private SanfewInfoBox(NightmarePlugin plugin, ItemManager itemManager, NightmareConfig config)
 	{
-		this.client = client;
 		this.plugin = plugin;
 		this.itemManager = itemManager;
 		this.config = config;
-
+		panel.setBackgroundColor(BACKGROUND);
 		setLayer(OverlayLayer.ABOVE_WIDGETS);
-		setPriority(OverlayPriority.HIGH);
+		setPriority(PRIORITY_HIGH);
 		setPosition(OverlayPosition.BOTTOM_RIGHT);
 	}
 
+	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		imagePanelComponent.getChildren().clear();
-
-		if (!plugin.isInFight() || !plugin.isParasite() || !config.sanfewReminder())
+		if (!config.sanfewReminder() || !plugin.isInFight() || !plugin.isParasite())
 		{
 			return null;
 		}
 
-		BufferedImage sanfewImage = itemManager.getImage(10925);
-		imagePanelComponent.setBackgroundColor(new Color(150, 0, 0, 150));
-
-		imagePanelComponent.getChildren().add(new ImageComponent(sanfewImage));
-		return imagePanelComponent.render(graphics);
+		panel.getChildren().clear();
+		panel.getChildren().add(new ImageComponent(itemManager.getImage(ItemID.SANFEW_SALVE_4_DOSE)));
+		return panel.render(graphics);
 	}
 }
